@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>城寨沙场 · 第一人称云游</title>
+<title>万岁山武侠城 · 云游</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{overflow:hidden;background:#1a1510;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
@@ -49,7 +49,7 @@
 
 <div class="hud">
   <button class="btn-back" id="btnBack">‹ 回到地图</button>
-  <div class="title"><span>实景</span><b>城寨沙场</b></div>
+  <div class="title"><span>云游</span><b>万岁山武侠城</b></div>
   <button class="btn-x" id="btnX">✕</button>
 </div>
 
@@ -58,11 +58,11 @@
 <div id="joystick"><div class="stick"></div></div>
 
 <div id="overlay">
-  <h2>城寨沙场</h2>
+  <h2>万岁山武侠城</h2>
   <p>第一人称云游模式<br>
   电脑：WASD 移动 · 鼠标环顾<br>
   手机：左侧摇杆移动 · 拖动屏幕环顾</p>
-  <button class="start" id="btnStart">进入场景</button>
+  <button class="start" id="btnStart">进入园区</button>
 </div>
 
 <script type="importmap">
@@ -71,258 +71,418 @@
 <script type="module">
 import * as THREE from 'three'
 
-/* ---------- 场景 ---------- */
+/* ==================== 场景 ==================== */
 const scene = new THREE.Scene()
-scene.background = new THREE.Color(0x1a1510)
-scene.fog = new THREE.Fog(0x1a1510, 30, 120)
+scene.background = new THREE.Color(0x87CEEB)  /* 天空蓝 */
+scene.fog = new THREE.Fog(0xc8d8e8, 60, 200)
 
-/* ---------- 相机 ---------- */
-const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 1000)
-camera.position.set(0, 1.7, 12)
+/* ==================== 相机 ==================== */
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 500)
+camera.position.set(0, 1.7, 45)
 
-/* ---------- 渲染器 ---------- */
+/* ==================== 渲染器 ==================== */
 const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' })
 renderer.setSize(innerWidth, innerHeight)
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
+renderer.toneMapping = THREE.ACESFilmicToneMapping
+renderer.toneMappingExposure = 1.1
 document.getElementById('app').appendChild(renderer.domElement)
 
-/* ---------- 灯光 ---------- */
-scene.add(new THREE.AmbientLight(0x8a7a5a, 0.35))
-const sun = new THREE.DirectionalLight(0xffe8c0, 0.9)
-sun.position.set(18, 32, 12)
+/* ==================== 灯光 ==================== */
+scene.add(new THREE.AmbientLight(0xfff4e0, 0.4))
+const sun = new THREE.DirectionalLight(0xffe8c0, 1.2)
+sun.position.set(40, 60, 30)
 sun.castShadow = true
-sun.shadow.mapSize.set(2048, 2048)
+sun.shadow.mapSize.set(4096, 4096)
 sun.shadow.camera.near = 1
-sun.shadow.camera.far = 80
-sun.shadow.camera.left = -25
-sun.shadow.camera.right = 25
-sun.shadow.camera.top = 25
-sun.shadow.camera.bottom = -25
+sun.shadow.camera.far = 200
+sun.shadow.camera.left = -60
+sun.shadow.camera.right = 60
+sun.shadow.camera.top = 60
+sun.shadow.camera.bottom = -60
+sun.shadow.bias = -0.001
 scene.add(sun)
 
-/* ---------- 地面：沙土 ---------- */
-const groundGeo = new THREE.CircleGeometry(40, 48)
-const groundMat = new THREE.MeshStandardMaterial({ color:0xc2a878, roughness:0.92, metalness:0 })
-const ground = new THREE.Mesh(groundGeo, groundMat)
-ground.rotation.x = -Math.PI/2
-ground.receiveShadow = true
-scene.add(ground)
+/* 补充光 */
+const fill = new THREE.DirectionalLight(0x87CEEB, 0.3)
+fill.position.set(-20, 30, -20)
+scene.add(fill)
 
-/* ---------- 中央演武台 ---------- */
-const stageGeo = new THREE.CylinderGeometry(5.2, 5.6, 0.55, 20)
-const stageMat = new THREE.MeshStandardMaterial({ color:0xa08858, roughness:0.85 })
-const stage = new THREE.Mesh(stageGeo, stageMat)
-stage.position.y = 0.275
-stage.castShadow = true
-stage.receiveShadow = true
-scene.add(stage)
-
-/* ---------- 四周：古建筑围墙 ---------- */
-const wallMat = new THREE.MeshStandardMaterial({ color:0x8a6a48, roughness:0.9 })
-const roofMat = new THREE.MeshStandardMaterial({ color:0x6a4a32, roughness:0.88 })
-
-function makeWall(x, z, w, h, d, ry=0){
-  const g = new THREE.Group()
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat)
-  wall.position.y = h/2
-  wall.castShadow = true; wall.receiveShadow = true
-  g.add(wall)
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(w+1.2, 0.35, d+1.2), roofMat)
-  roof.position.y = h + 0.18
-  roof.castShadow = true
-  g.add(roof)
-  g.position.set(x, 0, z)
-  g.rotation.y = ry
-  scene.add(g)
+/* ==================== 材质库 ==================== */
+const M = {
+  ground: new THREE.MeshStandardMaterial({ color:0x8a9a6a, roughness:0.95 }),
+  path: new THREE.MeshStandardMaterial({ color:0xb8a888, roughness:0.9 }),
+  sand: new THREE.MeshStandardMaterial({ color:0xc2a878, roughness:0.92 }),
+  wood: new THREE.MeshStandardMaterial({ color:0x8a6a48, roughness:0.85 }),
+  woodDark: new THREE.MeshStandardMaterial({ color:0x5a4a32, roughness:0.9 }),
+  roof: new THREE.MeshStandardMaterial({ color:0x4a5a6a, roughness:0.85 }),
+  roofRed: new THREE.MeshStandardMaterial({ color:0xb23a2a, roughness:0.85 }),
+  stone: new THREE.MeshStandardMaterial({ color:0x9a9a8a, roughness:0.95 }),
+  water: new THREE.MeshStandardMaterial({ color:0x3a8ab8, roughness:0.1, metalness:0.3, transparent:true, opacity:0.85 }),
+  leaf: new THREE.MeshStandardMaterial({ color:0x5a8a4a, roughness:0.9 }),
+  trunk: new THREE.MeshStandardMaterial({ color:0x6a5a42, roughness:0.95 }),
+  lantern: new THREE.MeshStandardMaterial({ color:0xff6a3a, roughness:0.6, emissive:0xff8a5a, emissiveIntensity:0.3 }),
+  gold: new THREE.MeshStandardMaterial({ color:0xd9a53c, roughness:0.3, metalness:0.7 }),
 }
-makeWall(0, -22, 44, 7.5, 2.2)
-makeWall(0, 22, 44, 7.5, 2.2)
-makeWall(-22, 0, 2.2, 7.5, 44)
-makeWall(22, 0, 2.2, 7.5, 44)
 
-/* 四个角楼 */
-function makeTower(x, z){
-  const g = new THREE.Group()
-  const base = new THREE.Mesh(new THREE.BoxGeometry(4.5, 9, 4.5), wallMat)
-  base.position.y = 4.5; base.castShadow = true; base.receiveShadow = true
-  g.add(base)
-  const roof = new THREE.Mesh(new THREE.ConeGeometry(3.8, 2.8, 4), roofMat)
-  roof.position.y = 10.4; roof.rotation.y = Math.PI/4; roof.castShadow = true
-  g.add(roof)
-  g.position.set(x, 0, z)
-  scene.add(g)
+/* ==================== 工具函数 ==================== */
+function box(w,h,d,mat,x=0,y=0,z=0,ry=0){
+  const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat)
+  m.position.set(x,y,z)
+  m.rotation.y=ry
+  m.castShadow=true;m.receiveShadow=true
+  scene.add(m);return m
 }
-makeTower(-20, -20); makeTower(20, -20); makeTower(-20, 20); makeTower(20, 20)
+function cyl(rt,rb,h,seg,mat,x=0,y=0,z=0){
+  const m=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,seg),mat)
+  m.position.set(x,y,z)
+  m.castShadow=true;m.receiveShadow=true
+  scene.add(m);return m
+}
+function cone(r,h,seg,mat,x=0,y=0,z=0){
+  const m=new THREE.Mesh(new THREE.ConeGeometry(r,h,seg),mat)
+  m.position.set(x,y,z)
+  m.castShadow=true;m.receiveShadow=true
+  scene.add(m);return m
+}
+function plane(w,h,mat,x=0,y=0,z=0,rx=0,ry=0){
+  const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat)
+  m.position.set(x,y,z);m.rotation.x=rx;m.rotation.y=ry
+  m.receiveShadow=true
+  scene.add(m);return m
+}
 
-/* ---------- 观众席：环形台阶 ---------- */
-const seatMat = new THREE.MeshStandardMaterial({ color:0x9a8a6a, roughness:0.9 })
-for(let i=0; i<3; i++){
-  const r = 12 + i*2.2
-  const h = 0.5 + i*0.45
-  const seat = new THREE.Mesh(new THREE.TorusGeometry(r, 0.9, 6, 48, Math.PI), seatMat)
-  seat.rotation.x = Math.PI/2
-  seat.position.y = h/2
-  seat.castShadow = true; seat.receiveShadow = true
+/* ==================== 地面 ==================== */
+plane(200,200,M.ground,0,0,0,-Math.PI/2)
+
+/* 主环路：十字交叉 */
+plane(8,120,M.path,0,0.01,0,-Math.PI/2)
+plane(120,8,M.path,0,0.01,0,-Math.PI/2)
+
+/* ==================== 北大门 ==================== */
+/* 门楼 */
+box(12,8,4,M.woodDark,0,4,-45)
+box(14,0.5,5,M.roof,0,8.2,-45)
+box(14,0.5,5,M.roof,0,10.5,-45)
+/* 门柱 */
+cyl(0.5,0.6,8,8,M.woodDark,-4,4,-45)
+cyl(0.5,0.6,8,8,M.woodDark,4,4,-45)
+/* 匾额 */
+box(6,1.5,0.3,M.gold,0,9,-43.4)
+/* 两侧围墙 */
+box(30,5,2,M.stone,-22,2.5,-45)
+box(30,5,2,M.stone,22,2.5,-45)
+
+/* ==================== 城寨沙场（东） ==================== */
+/* 位置：东偏北，坐标约 (35, 0, -15) */
+const arenaX=35, arenaZ=-15
+
+/* 沙场地面：圆形沙地 */
+{
+  const g=new THREE.Mesh(new THREE.CircleGeometry(18,32),M.sand)
+  g.rotation.x=-Math.PI/2;g.position.set(arenaX,0.02,arenaZ)
+  g.receiveShadow=true;scene.add(g)
+}
+
+/* 半环形看台（3层） */
+for(let i=0;i<3;i++){
+  const r=10+i*2.5, h=0.8+i*0.6
+  const seat=new THREE.Mesh(
+    new THREE.TorusGeometry(r,1.2,4,24,Math.PI),
+    M.wood
+  )
+  seat.rotation.x=Math.PI/2
+  seat.position.set(arenaX,h/2,arenaZ+8)
+  seat.castShadow=true;seat.receiveShadow=true
   scene.add(seat)
 }
 
-/* ---------- 旗帜 ---------- */
-const flagMat = new THREE.MeshStandardMaterial({ color:0xb23a2a, roughness:0.85, side:THREE.DoubleSide })
-for(let i=0; i<8; i++){
-  const a = i/8 * Math.PI*2
-  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 5, 6), wallMat)
-  pole.position.set(Math.cos(a)*17, 2.5, Math.sin(a)*17)
-  pole.castShadow = true
-  scene.add(pole)
-  const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.9, 4, 3), flagMat)
-  flag.position.set(Math.cos(a)*17, 4.1, Math.sin(a)*17)
-  flag.rotation.y = -a + Math.PI/2
-  scene.add(flag)
+/* 主看台顶棚 */
+box(24,0.3,6,M.roof,arenaX,6.5,arenaZ+12)
+box(24,0.3,6,M.roof,arenaX,8.2,arenaZ+12)
+/* 顶棚支柱 */
+for(let i=-2;i<=2;i++){
+  cyl(0.3,0.35,6,6,M.woodDark,arenaX+i*6,3,arenaZ+12)
 }
 
-/* ---------- 第一人称控制（自研，兼容手机+电脑） ---------- */
-let moveF=false, moveB=false, moveL=false, moveR=false
-let joyX=0, joyY=0
-let isMobile = 'ontouchstart' in window
+/* 中央演武台 */
+cyl(4,4.5,0.8,16,M.wood,arenaX,0.4,arenaZ)
 
-/* 键盘 */
-const onKey = (e, down) => {
+/* 战鼓 */
+cyl(1.2,1.2,1.5,12,M.roofRed,arenaX-6,0.75,arenaZ-5)
+cyl(0.2,0.2,2,6,M.woodDark,arenaX-6,1.75,arenaZ-5)
+
+/* 旗帜 */
+for(let i=0;i<6;i++){
+  const a=(i-2.5)*0.35
+  const fx=arenaX+Math.sin(a)*16, fz=arenaZ+Math.cos(a)*10-2
+  cyl(0.08,0.1,6,6,M.woodDark,fx,3,fz)
+  const flag=plane(2,1.2,M.roofRed,fx,4.5,fz,0,Math.PI/2+a)
+}
+
+/* 马桩 */
+for(let i=0;i<4;i++){
+  const mx=arenaX-8+i*5.5, mz=arenaZ+3
+  cyl(0.15,0.18,1.2,6,M.woodDark,mx,0.6,mz)
+  box(0.8,0.3,0.3,M.woodDark,mx,1.1,mz)
+}
+
+/* ==================== 仙侠湖（东北） ==================== */
+const lakeX=30, lakeZ=-35
+
+/* 湖面 */
+{
+  const g=new THREE.Mesh(new THREE.CircleGeometry(12,32),M.water)
+  g.rotation.x=-Math.PI/2;g.position.set(lakeX,0.01,lakeZ)
+  scene.add(g)
+}
+
+/* 湖心亭 */
+const px=lakeX, pz=lakeZ
+cyl(0.4,0.5,0.8,8,M.stone,px,0.4,pz)  /* 基座 */
+for(let i=0;i<4;i++){
+  const a=i*Math.PI/2
+  cyl(0.15,0.18,3.5,6,M.wood,px+Math.cos(a)*2.2,1.75,pz+Math.sin(a)*2.2)
+}
+box(5,0.25,5,M.roof,px,3.8,pz)  /* 顶 */
+cone(3.5,2,4,M.roof,px,5,pz)  /* 攒尖顶 */
+
+/* 曲桥（三段） */
+const bridgePts=[
+  [lakeX-14,lakeZ+8],[lakeX-8,lakeZ+4],[lakeX-4,lakeZ],[px,pz]
+]
+for(let i=0;i<bridgePts.length-1;i++){
+  const [x1,z1]=bridgePts[i],[x2,z2]=bridgePts[i+1]
+  const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz)
+  const ang=Math.atan2(dx,dz)
+  box(2.5,0.2,len,M.wood,(x1+x2)/2,0.5,(z1+z2)/2,ang)
+  /* 栏杆 */
+  box(0.1,0.8,len,M.woodDark,(x1+x2)/2-1.2*Math.cos(ang),0.9,(z1+z2)/2+1.2*Math.sin(ang),ang)
+  box(0.1,0.8,len,M.woodDark,(x1+x2)/2+1.2*Math.cos(ang),0.9,(z1+z2)/2-1.2*Math.sin(ang),ang)
+}
+
+/* ==================== 水浒街（西南） ==================== */
+const streetX=-25, streetZ=25
+
+/* 街道地面 */
+plane(30,6,M.path,streetX,0.01,streetZ,-Math.PI/2)
+
+/* 两侧商铺 */
+function shop(x,z,ry){
+  const g=new THREE.Group()
+  /* 主体 */
+  const main=box(5,4,4,M.wood,x,2,z,ry)
+  /* 屋檐 */
+  box(6,0.2,5,M.roof,x,4.2,z,ry)
+  /* 门板 */
+  box(2,2.5,0.1,M.woodDark,x,1.25,z+2.05,ry)
+  /* 灯笼 */
+  cyl(0.3,0.3,0.8,8,M.lantern,x-1.5,2.8,z+2.1)
+  cyl(0.3,0.3,0.8,8,M.lantern,x+1.5,2.8,z+2.1)
+  /* 幌子 */
+  box(0.8,1.2,0.05,M.roofRed,x,2.5,z+2.2,ry)
+  scene.add(g)
+}
+shop(streetX-8,streetZ-4,0)
+shop(streetX+8,streetZ-4,0)
+shop(streetX-8,streetZ+4,Math.PI)
+shop(streetX+8,streetZ+4,Math.PI)
+
+/* ==================== 万岁寺（北） ==================== */
+const templeX=0, templeZ=-20
+
+/* 塔基 */
+box(8,2,8,M.stone,templeX,1,templeZ)
+/* 五层塔 */
+for(let i=0;i<5;i++){
+  const s=6-i*0.8, y=2+i*3
+  box(s,2.5,s,M.wood,templeX,y+1.25,templeZ)
+  box(s+1,0.3,s+1,M.roof,templeX,y+2.6,templeZ)
+}
+cone(2.5,3,4,M.roof,templeX,17,templeZ)
+
+/* ==================== 大宋武馆（西） ==================== */
+const gymX=-30, gymZ=5
+
+/* 演武场 */
+plane(15,15,M.sand,gymX,0.01,gymZ,-Math.PI/2)
+/* 主厅 */
+box(8,5,6,M.wood,gymX,2.5,gymZ-8)
+box(9,0.3,7,M.roof,gymX,5.2,gymZ-8)
+/* 兵器架 */
+for(let i=0;i<3;i++){
+  const bx=gymX-4+i*4, bz=gymZ+5
+  box(0.3,2.5,0.3,M.woodDark,bx,1.25,bz)
+  box(2,0.15,0.15,M.woodDark,bx,2.3,bz)
+  /* 兵器 */
+  cyl(0.03,0.03,2.8,6,M.stone,bx-0.5,2.4,bz)
+  cyl(0.03,0.03,2.8,6,M.stone,bx+0.5,2.4,bz)
+}
+
+/* ==================== 树木 ==================== */
+function tree(x,z,s=1){
+  cyl(0.2*s,0.25*s,2*s,6,M.trunk,x,s,z)
+  cone(2*s,3*s,8,M.leaf,x,4*s,z)
+  cone(1.5*s,2.5*s,8,M.leaf,x,5.5*s,z)
+}
+/* 沿路种树 */
+tree(-8,-30); tree(8,-30)
+tree(-8,0); tree(8,0)
+tree(-8,30); tree(8,30)
+tree(-30,0); tree(30,0)
+tree(-20,-20); tree(20,-20)
+tree(-20,20); tree(20,20)
+
+/* ==================== 路灯 ==================== */
+function lamp(x,z){
+  cyl(0.08,0.1,3,6,M.woodDark,x,1.5,z)
+  cyl(0.25,0.25,0.6,8,M.lantern,x,3.2,z)
+  /* 光晕 */
+  const glow=new THREE.PointLight(0xff8a5a,0.5,8)
+  glow.position.set(x,3.2,z)
+  scene.add(glow)
+}
+lamp(-6,-40); lamp(6,-40)
+lamp(-6,0); lamp(6,0)
+lamp(-6,40); lamp(6,40)
+lamp(-40,0); lamp(40,0)
+lamp(0,-20); lamp(0,20)
+
+/* ==================== 第一人称控制 ==================== */
+let moveF=false,moveB=false,moveL=false,moveR=false
+let joyX=0,joyY=0
+const isMobile='ontouchstart' in window
+
+const onKey=(e,down)=>{
   switch(e.code){
-    case 'KeyW': case 'ArrowUp': moveF=down; break
-    case 'KeyS': case 'ArrowDown': moveB=down; break
-    case 'KeyA': case 'ArrowLeft': moveL=down; break
-    case 'KeyD': case 'ArrowRight': moveR=down; break
+    case 'KeyW':case 'ArrowUp':moveF=down;break
+    case 'KeyS':case 'ArrowDown':moveB=down;break
+    case 'KeyA':case 'ArrowLeft':moveL=down;break
+    case 'KeyD':case 'ArrowRight':moveR=down;break
   }
 }
-addEventListener('keydown', e=>onKey(e,true))
-addEventListener('keyup', e=>onKey(e,false))
+addEventListener('keydown',e=>onKey(e,true))
+addEventListener('keyup',e=>onKey(e,false))
 
 /* 虚拟摇杆 */
-const joy = document.getElementById('joystick')
-const stick = joy.querySelector('.stick')
-let joyActive=false, joyRect=null
-joy.addEventListener('pointerdown', e=>{
-  joyActive=true; joyRect=joy.getBoundingClientRect()
+const joy=document.getElementById('joystick')
+const stick=joy.querySelector('.stick')
+let joyActive=false,joyRect=null
+joy.addEventListener('pointerdown',e=>{
+  joyActive=true;joyRect=joy.getBoundingClientRect()
   joy.setPointerCapture(e.pointerId)
 })
-joy.addEventListener('pointermove', e=>{
-  if(!joyActive) return
-  const cx=joyRect.left+joyRect.width/2, cy=joyRect.top+joyRect.height/2
-  const dx=e.clientX-cx, dy=e.clientY-cy
-  const dist=Math.hypot(dx,dy), max=joyRect.width/2-22
+joy.addEventListener('pointermove',e=>{
+  if(!joyActive)return
+  const cx=joyRect.left+joyRect.width/2,cy=joyRect.top+joyRect.height/2
+  const dx=e.clientX-cx,dy=e.clientY-cy
+  const dist=Math.hypot(dx,dy),max=joyRect.width/2-22
   const cl=Math.min(dist,max)
   const ang=Math.atan2(dy,dx)
   joyX=Math.cos(ang)*cl/max
   joyY=Math.sin(ang)*cl/max
   stick.style.transform=`translate(${-50+Math.cos(ang)*cl}%,${-50+Math.sin(ang)*cl}%)`
 })
-joy.addEventListener('pointerup', ()=>{
-  joyActive=false; joyX=0; joyY=0
+joy.addEventListener('pointerup',()=>{
+  joyActive=false;joyX=0;joyY=0
   stick.style.transform='translate(-50%,-50%)'
 })
 
-/* 触摸环顾（手机） */
-let touchId=null, touchLX=0, touchLY=0
-renderer.domElement.addEventListener('touchstart', e=>{
+/* 触摸环顾 */
+let touchId=null,touchLX=0,touchLY=0
+renderer.domElement.addEventListener('touchstart',e=>{
   if(touchId===null){
     const t=e.changedTouches[0]
-    touchId=t.identifier; touchLX=t.clientX; touchLY=t.clientY
+    touchId=t.identifier;touchLX=t.clientX;touchLY=t.clientY
   }
 })
-renderer.domElement.addEventListener('touchmove', e=>{
-  if(touchId===null) return
+renderer.domElement.addEventListener('touchmove',e=>{
+  if(touchId===null)return
   const t=[...e.changedTouches].find(t=>t.identifier===touchId)
-  if(!t) return
-  const dx=t.clientX-touchLX, dy=t.clientY-touchLY
-  touchLX=t.clientX; touchLY=t.clientY
-  camera.rotation.y -= dx*0.003
-  camera.rotation.x -= dy*0.003
-  camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x))
+  if(!t)return
+  const dx=t.clientX-touchLX,dy=t.clientY-touchLY
+  touchLX=t.clientX;touchLY=t.clientY
+  camera.rotation.y-=dx*0.003
+  camera.rotation.x-=dy*0.003
+  camera.rotation.x=Math.max(-1.4,Math.min(1.4,camera.rotation.x))
 })
-renderer.domElement.addEventListener('touchend', ()=>{ touchId=null })
+renderer.domElement.addEventListener('touchend',()=>{touchId=null})
 
-/* 鼠标环顾（电脑） */
-let mouseDown=false, mouseLX=0, mouseLY=0
-renderer.domElement.addEventListener('mousedown', e=>{
-  if(isMobile) return
-  mouseDown=true; mouseLX=e.clientX; mouseLY=e.clientY
+/* 鼠标环顾 */
+let mouseDown=false,mouseLX=0,mouseLY=0
+renderer.domElement.addEventListener('mousedown',e=>{
+  if(isMobile)return
+  mouseDown=true;mouseLX=e.clientX;mouseLY=e.clientY
 })
-renderer.domElement.addEventListener('mousemove', e=>{
-  if(!mouseDown || isMobile) return
-  const dx=e.clientX-mouseLX, dy=e.clientY-mouseLY
-  mouseLX=e.clientX; mouseLY=e.clientY
-  camera.rotation.y -= dx*0.002
-  camera.rotation.x -= dy*0.002
-  camera.rotation.x = Math.max(-1.4, Math.min(1.4, camera.rotation.x))
+renderer.domElement.addEventListener('mousemove',e=>{
+  if(!mouseDown||isMobile)return
+  const dx=e.clientX-mouseLX,dy=e.clientY-mouseLY
+  mouseLX=e.clientX;mouseLY=e.clientY
+  camera.rotation.y-=dx*0.002
+  camera.rotation.x-=dy*0.002
+  camera.rotation.x=Math.max(-1.4,Math.min(1.4,camera.rotation.x))
 })
-renderer.domElement.addEventListener('mouseup', ()=>{ mouseDown=false })
-renderer.domElement.addEventListener('mouseleave', ()=>{ mouseDown=false })
+renderer.domElement.addEventListener('mouseup',()=>{mouseDown=false})
+renderer.domElement.addEventListener('mouseleave',()=>{mouseDown=false})
 
-/* 开始按钮 */
-const overlay = document.getElementById('overlay')
-document.getElementById('btnStart').addEventListener('click', ()=>{
+/* 开始 */
+const overlay=document.getElementById('overlay')
+document.getElementById('btnStart').addEventListener('click',()=>{
   overlay.style.display='none'
 })
 
 /* 退出 */
-function goBack(){ location.href='index.html' }
-document.getElementById('btnBack').addEventListener('click', goBack)
-document.getElementById('btnX').addEventListener('click', goBack)
-addEventListener('keydown', e=>{ if(e.key==='Escape' && overlay.style.display==='none') goBack() })
+function goBack(){location.href='index.html'}
+document.getElementById('btnBack').addEventListener('click',goBack)
+document.getElementById('btnX').addEventListener('click',goBack)
+addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.style.display==='none')goBack()})
 
 /* ---------- 主循环 ---------- */
-const vel = new THREE.Vector3()
-const dir = new THREE.Vector3()
-let prevT = performance.now()
+const vel=new THREE.Vector3()
+const dir=new THREE.Vector3()
+let prevT=performance.now()
 
 function tick(){
   requestAnimationFrame(tick)
-  const now = performance.now()
-  const dt = Math.min((now-prevT)/1000, 0.1)
-  prevT = now
+  const now=performance.now()
+  const dt=Math.min((now-prevT)/1000,0.1)
+  prevT=now
 
   /* 移动 */
-  vel.x -= vel.x * 8 * dt
-  vel.z -= vel.z * 8 * dt
-  dir.z = Number(moveF) - Number(moveB) + joyY
-  dir.x = Number(moveR) - Number(moveL) + joyX
+  vel.x-=vel.x*8*dt
+  vel.z-=vel.z*8*dt
+  dir.z=Number(moveF)-Number(moveB)+joyY
+  dir.x=Number(moveR)-Number(moveL)+joyX
   dir.normalize()
-  const speed = 4.2
-  if(moveF||moveB) vel.z -= dir.z * speed * dt
-  if(moveL||moveR) vel.x -= dir.x * speed * dt
+  const speed=5
+  if(moveF||moveB)vel.z-=dir.z*speed*dt
+  if(moveL||moveR)vel.x-=dir.x*speed*dt
   if(joyX||joyY){
-    vel.z -= joyY * speed * dt
-    vel.x -= joyX * speed * dt
+    vel.z-=joyY*speed*dt
+    vel.x-=joyX*speed*dt
   }
 
   /* 基于相机朝向的相对移动 */
-  const yaw = camera.rotation.y
-  const sin = Math.sin(yaw), cos = Math.cos(yaw)
-  const worldVX = vel.x * cos - vel.z * sin
-  const worldVZ = vel.x * sin + vel.z * cos
-  camera.position.x += worldVX
-  camera.position.z += worldVZ
+  const yaw=camera.rotation.y
+  const sin=Math.sin(yaw),cos=Math.cos(yaw)
+  const worldVX=vel.x*cos-vel.z*sin
+  const worldVZ=vel.x*sin+vel.z*cos
+  camera.position.x+=worldVX
+  camera.position.z+=worldVZ
 
-  /* 边界限制 */
-  const p = camera.position
-  const dist = Math.hypot(p.x, p.z)
-  const maxR = 19
-  if(dist > maxR){
-    p.x *= maxR/dist
-    p.z *= maxR/dist
-  }
+  /* 无边界限制，自由探索 */
 
-  renderer.render(scene, camera)
+  renderer.render(scene,camera)
 }
 tick()
 
 /* ---------- resize ---------- */
-addEventListener('resize', ()=>{
-  camera.aspect = innerWidth/innerHeight
+addEventListener('resize',()=>{
+  camera.aspect=innerWidth/innerHeight
   camera.updateProjectionMatrix()
-  renderer.setSize(innerWidth, innerHeight)
+  renderer.setSize(innerWidth,innerHeight)
 })
 </script>
 </body>
