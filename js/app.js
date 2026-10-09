@@ -180,8 +180,8 @@ function showPano(p){
 function initPano(src){
   panoViewer=new Marzipano.Viewer(document.getElementById('pano'),{controls:{mouseViewMode:'drag'}})
   const source=Marzipano.ImageUrlSource.fromString(src)
-  const geometry=new Marzipano.EquirectGeometry([{width:4096}])
-  const limiter=Marzipano.RectilinearView.limit.traditional(4096, 120*Math.PI/180, 176*Math.PI/180)
+  const geometry=new Marzipano.EquirectGeometry([{width:2048}])
+  const limiter=Marzipano.RectilinearView.limit.traditional(2048, 120*Math.PI/180, 176*Math.PI/180)
   panoView=new Marzipano.RectilinearView({yaw:0,pitch:0,fov:1.3}, limiter)
   const scene=panoViewer.createScene({source,geometry,view:panoView})
   scene.switchTo({transitionDuration:0})
