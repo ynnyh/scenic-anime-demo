@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>万岁山武侠城 · 手绘导览图</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <!-- 顶部 -->
+  <header class="hud">
+    <div class="brand">
+      <span class="seal">万岁</span>
+      <div class="brand-txt">
+        <h1>万岁山武侠城</h1>
+        <small>WANSUI MOUNTAIN · 手绘导览</small>
+      </div>
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip on" data-cat="all"><span></span>全部</button>
+      <button class="chip" data-cat="show"><span style="background:#cf8f2e"></span>演艺场</button>
+      <button class="chip" data-cat="gate"><span style="background:#b23a2a"></span>出入口</button>
+      <button class="chip" data-cat="spot"><span style="background:#6f9f52"></span>景点</button>
+      <button class="chip" data-cat="service"><span style="background:#3f8fa8"></span>服务</button>
+      <button class="chip" data-cat="wc"><span style="background:#4f93b8"></span>卫生间</button>
+    </div>
+    <div class="zooms">
+      <button id="zin" aria-label="放大">＋</button>
+      <button id="zout" aria-label="缩小">－</button>
+      <button id="zfit" aria-label="回到全园" title="回到全园">全</button>
+    </div>
+  </header>
+
+  <!-- 地图 -->
+  <div id="stage">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg">
+      <g id="world">
+        <g id="art"></g>
+        <g id="routeLayer"></g>
+        <g id="pins"></g>
+      </g>
+    </svg>
+
+    <!-- 图例 -->
+    <div class="legend">
+      <b>图 例</b>
+      <i><span style="background:#b23a2a"></span>出入口</i>
+      <i><span style="background:#cf8f2e"></span>演艺场</i>
+      <i><span style="background:#6f9f52"></span>景点街区</i>
+      <i><span style="background:#3f8fa8"></span>服务</i>
+      <i><span style="background:#4f93b8"></span>卫生间</i>
+    </div>
+    <div class="hint">按住拖动浏览全园 · 滚轮或双指缩放 · 点击圆点看详情</div>
+
+    <!-- 详情卡 -->
+    <aside id="panel" class="panel"></aside>
+  </div>
+</div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
