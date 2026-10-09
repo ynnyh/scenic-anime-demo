@@ -9,7 +9,6 @@
   body{overflow:hidden;background:#1a1510;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
   #app{position:fixed;inset:0}
   canvas{display:block}
-  /* 顶部 HUD */
   .hud{position:fixed;top:0;left:0;right:0;z-index:10;display:flex;align-items:center;gap:12px;
     padding:14px 16px;background:linear-gradient(180deg,rgba(10,8,4,.72),transparent);pointer-events:none}
   .hud>*{pointer-events:auto}
@@ -21,17 +20,14 @@
   .title b{font-size:19px;letter-spacing:4px;color:#f6ecd4;text-shadow:0 2px 10px rgba(0,0,0,.5)}
   .btn-x{width:32px;height:32px;border-radius:50%;border:1px solid rgba(246,236,212,.4);
     background:rgba(20,14,8,.5);color:#f6ecd4;font-size:13px;line-height:1;cursor:pointer}
-  /* 底部提示 */
   .hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;
     background:rgba(20,14,8,.55);color:#f6ecd4;font-size:12px;padding:7px 16px;border-radius:999px;
     letter-spacing:.5px;pointer-events:none;white-space:nowrap}
-  /* 虚拟摇杆（手机） */
   #joystick{position:fixed;bottom:90px;left:24px;z-index:20;width:110px;height:110px;
     border-radius:50%;background:rgba(20,14,8,.35);border:1.5px solid rgba(246,236,212,.25);
     display:none;touch-action:none}
   #joystick .stick{position:absolute;left:50%;top:50%;width:44px;height:44px;border-radius:50%;
     background:rgba(246,236,212,.5);transform:translate(-50%,-50%);transition:transform .1s}
-  /* 开始覆盖层 */
   #overlay{position:fixed;inset:0;z-index:100;background:rgba(10,8,4,.88);display:flex;
     flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#f6ecd4;
     pointer-events:auto}
@@ -74,12 +70,13 @@ import * as THREE from 'three'
 
 /* ==================== 场景 ==================== */
 const scene = new THREE.Scene()
-scene.background = new THREE.Color(0x87CEEB)  /* 天空蓝 */
-scene.fog = new THREE.Fog(0xc8d8e8, 60, 200)
+scene.background = new THREE.Color(0x87CEEB)
+scene.fog = new THREE.Fog(0xc8d8e8, 80, 300)
 
 /* ==================== 相机 ==================== */
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 500)
-camera.position.set(0, 1.7, 45)
+/* 出生点：北大门外 */
+camera.position.set(0, 1.7, 80)
 
 /* ==================== 渲染器 ==================== */
 const renderer = new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' })
@@ -94,24 +91,23 @@ document.getElementById('app').appendChild(renderer.domElement)
 /* ==================== 灯光 ==================== */
 scene.add(new THREE.AmbientLight(0xfff4e0, 0.4))
 const sun = new THREE.DirectionalLight(0xffe8c0, 1.2)
-sun.position.set(40, 60, 30)
+sun.position.set(50, 80, 40)
 sun.castShadow = true
 sun.shadow.mapSize.set(4096, 4096)
 sun.shadow.camera.near = 1
-sun.shadow.camera.far = 200
-sun.shadow.camera.left = -60
-sun.shadow.camera.right = 60
-sun.shadow.camera.top = 60
-sun.shadow.camera.bottom = -60
+sun.shadow.camera.far = 300
+sun.shadow.camera.left = -80
+sun.shadow.camera.right = 80
+sun.shadow.camera.top = 80
+sun.shadow.camera.bottom = -80
 sun.shadow.bias = -0.001
 scene.add(sun)
 
-/* 补充光 */
 const fill = new THREE.DirectionalLight(0x87CEEB, 0.3)
-fill.position.set(-20, 30, -20)
+fill.position.set(-30, 40, -30)
 scene.add(fill)
 
-/* ==================== 材质库 ==================== */
+/* ==================== 材质 ==================== */
 const M = {
   ground: new THREE.MeshStandardMaterial({ color:0x8a9a6a, roughness:0.95 }),
   path: new THREE.MeshStandardMaterial({ color:0xb8a888, roughness:0.9 }),
@@ -155,201 +151,219 @@ function plane(w,h,mat,x=0,y=0,z=0,rx=0,ry=0){
   scene.add(m);return m
 }
 
-/* ==================== 地面 ==================== */
-plane(200,200,M.ground,0,0,0,-Math.PI/2)
+/* ==================== 地面（南北狭长） ==================== */
+plane(160,300,M.ground,0,0,0,-Math.PI/2)
 
-/* 主环路：十字交叉 */
-plane(8,120,M.path,0,0.01,0,-Math.PI/2)
-plane(120,8,M.path,0,0.01,0,-Math.PI/2)
+/* ==================== 护城河（西侧+南侧） ==================== */
+/* 西侧护城河 */
+plane(20,280,M.water,-70,0.01,0,-Math.PI/2)
+/* 南侧护城河 */
+plane(140,20,M.water,0,0.01,-130,-Math.PI/2)
 
-/* ==================== 北大门 ==================== */
-/* 门楼 */
-box(12,8,4,M.woodDark,0,4,-45)
-box(14,0.5,5,M.roof,0,8.2,-45)
-box(14,0.5,5,M.roof,0,10.5,-45)
+/* ==================== 主路（南北向） ==================== */
+plane(10,240,M.path,0,0.01,0,-Math.PI/2)
+/* 东西向支路 */
+plane(80,8,M.path,-30,0.01,-20,-Math.PI/2)
+plane(80,8,M.path,30,0.01,-20,-Math.PI/2)
+plane(80,8,M.path,0,0.01,40,-Math.PI/2)
+plane(80,8,M.path,0,0.01,-60,-Math.PI/2)
+
+/* ==================== 北大门（北端） ==================== */
+box(16,10,5,M.woodDark,0,5,75)
+box(18,0.5,6,M.roof,0,10.2,75)
+box(18,0.5,6,M.roof,0,13,75)
 /* 门柱 */
-cyl(0.5,0.6,8,8,M.woodDark,-4,4,-45)
-cyl(0.5,0.6,8,8,M.woodDark,4,4,-45)
+cyl(0.6,0.7,10,8,M.woodDark,-5,5,75)
+cyl(0.6,0.7,10,8,M.woodDark,5,5,75)
 /* 匾额 */
-box(6,1.5,0.3,M.gold,0,9,-43.4)
+box(8,2,0.4,M.gold,0,11.5,72.4)
 /* 两侧围墙 */
-box(30,5,2,M.stone,-22,2.5,-45)
-box(30,5,2,M.stone,22,2.5,-45)
+box(40,6,3,M.stone,-30,3,75)
+box(40,6,3,M.stone,30,3,75)
 
-/* ==================== 城寨沙场（东） ==================== */
-/* 位置：东偏北，坐标约 (35, 0, -15) */
-const arenaX=35, arenaZ=-15
+/* ==================== 武侠广场（中心） ==================== */
+/* 广场地面 */
+plane(30,30,M.path,0,0.02,20,-Math.PI/2)
+/* 中心花坛 */
+cyl(4,4.5,1,12,M.stone,0,0.5,20)
+cyl(3.5,3.5,0.8,12,M.ground,0,1.2,20)
 
-/* 沙场地面：圆形沙地 */
+/* ==================== 城寨沙场（南侧偏东） ==================== */
+const arenaX=25, arenaZ=-40
+/* 沙场地面：椭圆形沙地 */
 {
-  const g=new THREE.Mesh(new THREE.CircleGeometry(18,32),M.sand)
+  const g=new THREE.Mesh(new THREE.CircleGeometry(22,32),M.sand)
   g.rotation.x=-Math.PI/2;g.position.set(arenaX,0.02,arenaZ)
+  g.scale.set(1.2,1,1)
   g.receiveShadow=true;scene.add(g)
 }
 
-/* 半环形看台（3层） */
+/* 半环形看台（西侧，3层） */
 for(let i=0;i<3;i++){
-  const r=10+i*2.5, h=0.8+i*0.6
+  const r=14+i*3, h=1+i*0.8
   const seat=new THREE.Mesh(
-    new THREE.TorusGeometry(r,1.2,4,24,Math.PI),
+    new THREE.TorusGeometry(r,1.5,4,32,Math.PI),
     M.wood
   )
   seat.rotation.x=Math.PI/2
-  seat.position.set(arenaX,h/2,arenaZ+8)
+  seat.position.set(arenaX-5,h/2,arenaZ)
   seat.castShadow=true;seat.receiveShadow=true
   scene.add(seat)
 }
 
 /* 主看台顶棚 */
-box(24,0.3,6,M.roof,arenaX,6.5,arenaZ+12)
-box(24,0.3,6,M.roof,arenaX,8.2,arenaZ+12)
+box(28,0.4,8,M.roof,arenaX-12,7,arenaZ)
+box(28,0.4,8,M.roof,arenaX-12,9.5,arenaZ)
 /* 顶棚支柱 */
-for(let i=-2;i<=2;i++){
-  cyl(0.3,0.35,6,6,M.woodDark,arenaX+i*6,3,arenaZ+12)
+for(let i=-3;i<=3;i++){
+  cyl(0.35,0.4,7,6,M.woodDark,arenaX-12+i*7,3.5,arenaZ)
 }
 
-/* 中央演武台 */
-cyl(4,4.5,0.8,16,M.wood,arenaX,0.4,arenaZ)
+/* 中央演武台（祝家庄城楼） */
+box(8,6,6,M.wood,arenaX,3,arenaZ)
+box(9,0.3,7,M.roof,arenaX,6.2,arenaZ)
+cone(3,2.5,4,M.roof,arenaX,8,arenaZ)
 
 /* 战鼓 */
-cyl(1.2,1.2,1.5,12,M.roofRed,arenaX-6,0.75,arenaZ-5)
-cyl(0.2,0.2,2,6,M.woodDark,arenaX-6,1.75,arenaZ-5)
+cyl(1.5,1.5,1.8,12,M.roofRed,arenaX-8,0.9,arenaZ-8)
+cyl(0.25,0.25,2.5,6,M.woodDark,arenaX-8,2.15,arenaZ-8)
 
 /* 旗帜 */
-for(let i=0;i<6;i++){
-  const a=(i-2.5)*0.35
-  const fx=arenaX+Math.sin(a)*16, fz=arenaZ+Math.cos(a)*10-2
-  cyl(0.08,0.1,6,6,M.woodDark,fx,3,fz)
-  const flag=plane(2,1.2,M.roofRed,fx,4.5,fz,0,Math.PI/2+a)
+for(let i=0;i<8;i++){
+  const a=(i-3.5)*0.25
+  const fx=arenaX+Math.sin(a)*20, fz=arenaZ+Math.cos(a)*14
+  cyl(0.1,0.12,7,6,M.woodDark,fx,3.5,fz)
+  const flag=plane(2.5,1.5,M.roofRed,fx,5.5,fz,0,Math.PI/2+a)
 }
 
 /* 马桩 */
-for(let i=0;i<4;i++){
-  const mx=arenaX-8+i*5.5, mz=arenaZ+3
-  cyl(0.15,0.18,1.2,6,M.woodDark,mx,0.6,mz)
-  box(0.8,0.3,0.3,M.woodDark,mx,1.1,mz)
+for(let i=0;i<5;i++){
+  const mx=arenaX-10+i*5, mz=arenaZ+12
+  cyl(0.18,0.2,1.5,6,M.woodDark,mx,0.75,mz)
+  box(1,0.35,0.35,M.woodDark,mx,1.4,mz)
 }
 
-/* ==================== 仙侠湖（东北） ==================== */
-const lakeX=30, lakeZ=-35
+/* ==================== 仙侠湖（中心偏南） ==================== */
+const lakeX=0, lakeZ=-10
 
-/* 湖面 */
+/* 湖面（不规则形状，用多个圆组合） */
 {
-  const g=new THREE.Mesh(new THREE.CircleGeometry(12,32),M.water)
-  g.rotation.x=-Math.PI/2;g.position.set(lakeX,0.01,lakeZ)
-  scene.add(g)
+  const g1=new THREE.Mesh(new THREE.CircleGeometry(15,24),M.water)
+  g1.rotation.x=-Math.PI/2;g1.position.set(lakeX,0.01,lakeZ)
+  scene.add(g1)
+  const g2=new THREE.Mesh(new THREE.CircleGeometry(10,20),M.water)
+  g2.rotation.x=-Math.PI/2;g2.position.set(lakeX-12,0.01,lakeZ+5)
+  scene.add(g2)
+  const g3=new THREE.Mesh(new THREE.CircleGeometry(8,18),M.water)
+  g3.rotation.x=-Math.PI/2;g3.position.set(lakeX+10,0.01,lakeZ-3)
+  scene.add(g3)
 }
 
 /* 湖心亭 */
 const px=lakeX, pz=lakeZ
-cyl(0.4,0.5,0.8,8,M.stone,px,0.4,pz)  /* 基座 */
+cyl(0.5,0.6,1,8,M.stone,px,0.5,pz)
 for(let i=0;i<4;i++){
   const a=i*Math.PI/2
-  cyl(0.15,0.18,3.5,6,M.wood,px+Math.cos(a)*2.2,1.75,pz+Math.sin(a)*2.2)
+  cyl(0.18,0.2,4,6,M.wood,px+Math.cos(a)*2.5,2,pz+Math.sin(a)*2.5)
 }
-box(5,0.25,5,M.roof,px,3.8,pz)  /* 顶 */
-cone(3.5,2,4,M.roof,px,5,pz)  /* 攒尖顶 */
+box(6,0.3,6,M.roof,px,4.3,pz)
+cone(4,2.5,4,M.roof,px,5.8,pz)
 
-/* 曲桥（三段） */
+/* 曲桥 */
 const bridgePts=[
-  [lakeX-14,lakeZ+8],[lakeX-8,lakeZ+4],[lakeX-4,lakeZ],[px,pz]
+  [lakeX-18,lakeZ+10],[lakeX-12,lakeZ+6],[lakeX-6,lakeZ+3],[px,pz]
 ]
 for(let i=0;i<bridgePts.length-1;i++){
   const [x1,z1]=bridgePts[i],[x2,z2]=bridgePts[i+1]
   const dx=x2-x1,dz=z2-z1,len=Math.hypot(dx,dz)
   const ang=Math.atan2(dx,dz)
-  box(2.5,0.2,len,M.wood,(x1+x2)/2,0.5,(z1+z2)/2,ang)
-  /* 栏杆 */
-  box(0.1,0.8,len,M.woodDark,(x1+x2)/2-1.2*Math.cos(ang),0.9,(z1+z2)/2+1.2*Math.sin(ang),ang)
-  box(0.1,0.8,len,M.woodDark,(x1+x2)/2+1.2*Math.cos(ang),0.9,(z1+z2)/2-1.2*Math.sin(ang),ang)
+  box(3,0.25,len,M.wood,(x1+x2)/2,0.6,(z1+z2)/2,ang)
+  box(0.12,1,len,M.woodDark,(x1+x2)/2-1.4*Math.cos(ang),1.1,(z1+z2)/2+1.4*Math.sin(ang),ang)
+  box(0.12,1,len,M.woodDark,(x1+x2)/2+1.4*Math.cos(ang),1.1,(z1+z2)/2-1.4*Math.sin(ang),ang)
 }
 
-/* ==================== 水浒街（西南） ==================== */
-const streetX=-25, streetZ=25
-
+/* ==================== 水浒街（东侧主路） ==================== */
+const streetX=15, streetZ=30
 /* 街道地面 */
-plane(30,6,M.path,streetX,0.01,streetZ,-Math.PI/2)
+plane(40,8,M.path,streetX,0.01,streetZ,-Math.PI/2)
 
 /* 两侧商铺 */
 function shop(x,z,ry){
   const g=new THREE.Group()
-  /* 主体 */
-  const main=box(5,4,4,M.wood,x,2,z,ry)
-  /* 屋檐 */
-  box(6,0.2,5,M.roof,x,4.2,z,ry)
-  /* 门板 */
-  box(2,2.5,0.1,M.woodDark,x,1.25,z+2.05,ry)
-  /* 灯笼 */
-  cyl(0.3,0.3,0.8,8,M.lantern,x-1.5,2.8,z+2.1)
-  cyl(0.3,0.3,0.8,8,M.lantern,x+1.5,2.8,z+2.1)
-  /* 幌子 */
-  box(0.8,1.2,0.05,M.roofRed,x,2.5,z+2.2,ry)
+  box(6,5,5,M.wood,x,2.5,z,ry)
+  box(7,0.25,6,M.roof,x,5.2,z,ry)
+  box(2.5,3,0.12,M.woodDark,x,1.5,z+2.55,ry)
+  cyl(0.35,0.35,1,8,M.lantern,x-1.8,3.5,z+2.6)
+  cyl(0.35,0.35,1,8,M.lantern,x+1.8,3.5,z+2.6)
+  box(1,1.5,0.06,M.roofRed,x,3,z+2.7,ry)
   scene.add(g)
 }
-shop(streetX-8,streetZ-4,0)
-shop(streetX+8,streetZ-4,0)
-shop(streetX-8,streetZ+4,Math.PI)
-shop(streetX+8,streetZ+4,Math.PI)
+shop(streetX-10,streetZ-5,0)
+shop(streetX+10,streetZ-5,0)
+shop(streetX-10,streetZ+5,Math.PI)
+shop(streetX+10,streetZ+5,Math.PI)
 
-/* ==================== 万岁寺（北） ==================== */
-const templeX=0, templeZ=-20
+/* ==================== 万岁寺（东南角） ==================== */
+const templeX=35, templeZ=-60
 
 /* 塔基 */
-box(8,2,8,M.stone,templeX,1,templeZ)
+box(10,2.5,10,M.stone,templeX,1.25,templeZ)
 /* 五层塔 */
 for(let i=0;i<5;i++){
-  const s=6-i*0.8, y=2+i*3
-  box(s,2.5,s,M.wood,templeX,y+1.25,templeZ)
-  box(s+1,0.3,s+1,M.roof,templeX,y+2.6,templeZ)
+  const s=7-i*0.9, y=2.5+i*3.5
+  box(s,3,s,M.wood,templeX,y+1.5,templeZ)
+  box(s+1.2,0.35,s+1.2,M.roof,templeX,y+3.2,templeZ)
 }
-cone(2.5,3,4,M.roof,templeX,17,templeZ)
+cone(3,3.5,4,M.roof,templeX,19,templeZ)
 
-/* ==================== 大宋武馆（西） ==================== */
-const gymX=-30, gymZ=5
+/* ==================== 大宋武馆（西侧） ==================== */
+const gymX=-25, gymZ=20
 
 /* 演武场 */
-plane(15,15,M.sand,gymX,0.01,gymZ,-Math.PI/2)
+plane(18,18,M.sand,gymX,0.01,gymZ,-Math.PI/2)
 /* 主厅 */
-box(8,5,6,M.wood,gymX,2.5,gymZ-8)
-box(9,0.3,7,M.roof,gymX,5.2,gymZ-8)
+box(10,6,7,M.wood,gymX,3,gymZ-10)
+box(11,0.35,8,M.roof,gymX,6.2,gymZ-10)
 /* 兵器架 */
 for(let i=0;i<3;i++){
-  const bx=gymX-4+i*4, bz=gymZ+5
-  box(0.3,2.5,0.3,M.woodDark,bx,1.25,bz)
-  box(2,0.15,0.15,M.woodDark,bx,2.3,bz)
-  /* 兵器 */
-  cyl(0.03,0.03,2.8,6,M.stone,bx-0.5,2.4,bz)
-  cyl(0.03,0.03,2.8,6,M.stone,bx+0.5,2.4,bz)
+  const bx=gymX-5+i*5, bz=gymZ+6
+  box(0.35,3,0.35,M.woodDark,bx,1.5,bz)
+  box(2.5,0.2,0.2,M.woodDark,bx,2.8,bz)
+  cyl(0.04,0.04,3.5,6,M.stone,bx-0.6,2.9,bz)
+  cyl(0.04,0.04,3.5,6,M.stone,bx+0.6,2.9,bz)
 }
 
 /* ==================== 树木 ==================== */
 function tree(x,z,s=1){
-  cyl(0.2*s,0.25*s,2*s,6,M.trunk,x,s,z)
-  cone(2*s,3*s,8,M.leaf,x,4*s,z)
-  cone(1.5*s,2.5*s,8,M.leaf,x,5.5*s,z)
+  cyl(0.25*s,0.3*s,2.5*s,6,M.trunk,x,1.25*s,z)
+  cone(2.5*s,3.5*s,8,M.leaf,x,4.5*s,z)
+  cone(1.8*s,3*s,8,M.leaf,x,6*s,z)
 }
 /* 沿路种树 */
-tree(-8,-30); tree(8,-30)
-tree(-8,0); tree(8,0)
-tree(-8,30); tree(8,30)
-tree(-30,0); tree(30,0)
-tree(-20,-20); tree(20,-20)
-tree(-20,20); tree(20,20)
+tree(-10,50); tree(10,50)
+tree(-10,30); tree(10,30)
+tree(-10,10); tree(10,10)
+tree(-10,-10); tree(10,-10)
+tree(-10,-30); tree(10,-30)
+tree(-10,-50); tree(10,-50)
+/* 湖周围 */
+tree(lakeX-20,lakeZ+15); tree(lakeX+18,lakeZ+10)
+tree(lakeX-15,lakeZ-12); tree(lakeX+12,lakeZ-15)
 
 /* ==================== 路灯 ==================== */
 function lamp(x,z){
-  cyl(0.08,0.1,3,6,M.woodDark,x,1.5,z)
-  cyl(0.25,0.25,0.6,8,M.lantern,x,3.2,z)
-  /* 光晕 */
-  const glow=new THREE.PointLight(0xff8a5a,0.5,8)
-  glow.position.set(x,3.2,z)
+  cyl(0.1,0.12,3.5,6,M.woodDark,x,1.75,z)
+  cyl(0.3,0.3,0.7,8,M.lantern,x,3.6,z)
+  const glow=new THREE.PointLight(0xff8a5a,0.5,10)
+  glow.position.set(x,3.6,z)
   scene.add(glow)
 }
-lamp(-6,-40); lamp(6,-40)
-lamp(-6,0); lamp(6,0)
-lamp(-6,40); lamp(6,40)
-lamp(-40,0); lamp(40,0)
-lamp(0,-20); lamp(0,20)
+lamp(-8,60); lamp(8,60)
+lamp(-8,40); lamp(8,40)
+lamp(-8,0); lamp(8,0)
+lamp(-8,-20); lamp(8,-20)
+lamp(-8,-40); lamp(8,-40)
+lamp(-8,-60); lamp(8,-60)
 
 /* ==================== 第一人称控制 ==================== */
 let moveF=false,moveB=false,moveL=false,moveR=false
@@ -383,7 +397,7 @@ joy.addEventListener('pointermove',e=>{
   const cl=Math.min(dist,max)
   const ang=Math.atan2(dy,dx)
   joyX=Math.cos(ang)*cl/max
-  joyY=Math.sin(ang)*cl/max
+  joyY=-Math.sin(ang)*cl/max
   stick.style.transform=`translate(${-50+Math.cos(ang)*cl}%,${-50+Math.sin(ang)*cl}%)`
 })
 joy.addEventListener('pointerup',()=>{
@@ -460,7 +474,7 @@ function tick(){
   dir.z=Number(moveF)-Number(moveB)+joyY
   dir.x=Number(moveR)-Number(moveL)+joyX
   dir.normalize()
-  const speed=5
+  const speed=6
   if(moveF||moveB)vel.z-=dir.z*speed*dt
   if(moveL||moveR)vel.x-=dir.x*speed*dt
   if(joyX||joyY){
@@ -476,7 +490,7 @@ function tick(){
   camera.position.x+=worldVX
   camera.position.z+=worldVZ
 
-  /* 无边界限制，自由探索 */
+  /* 无边界限制 */
 
   renderer.render(scene,camera)
 }
