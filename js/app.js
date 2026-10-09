@@ -157,7 +157,7 @@ function showPano(p){
       <div class="sv-title"><span>实景</span><b>${p.scene.name}</b></div>
       <button class="sv-x" id="svX" aria-label="关闭">✕</button>
     </div>
-    <div class="pano-hint">拖动环顾四周 · 双指张开退回地图</div>`
+    <div class="pano-hint">拖动环顾四周 · 点击地面移动位置</div>`
   sceneView.style.transition='none'
   sceneView.style.visibility='visible'
   sceneView.setAttribute('aria-hidden','false')
@@ -185,8 +185,8 @@ function initPano(src){
   panoView=new Marzipano.RectilinearView({yaw:0,pitch:0,fov:1.3}, limiter)
   const scene=panoViewer.createScene({source,geometry,view:panoView})
   scene.switchTo({transitionDuration:0})
-  /* 双指张开把视野拉到最广 → 退回地图 */
-  panoView.addEventListener('change',()=>{ if(sceneOpen && panoView.fov()>1.7) exitScene() })
+  /* 全景内单指点击移动位置（模拟行走） */
+  setupPanoWalk()
 }
 function exitScene(){
   if(!sceneOpen) return
@@ -213,6 +213,39 @@ function exitScene(){
   tweenTo(W/2-p.x*tk, H*(W<720?.38:.5)-p.y*tk, tk, 650)
 }
 addEventListener('keydown',e=>{ if(e.key==='Escape') exitScene() })
+
+/* ---------- 全景内点击移动（模拟行走） ---------- */
+function setupPanoWalk(){
+  const panoEl=document.getElementById('pano')
+  if(!panoEl) return
+  let startX=0, startY=0, startT=0
+  panoEl.addEventListener('pointerdown',e=>{
+    startX=e.clientX; startY=e.clientY; startT=performance.now()
+  })
+  panoEl.addEventListener('pointerup',e=>{
+    const dx=e.clientX-startX, dy=e.clientY-startY, dt=performance.now()-startT
+    /* 短按且几乎没移动 → 视为点击移动 */
+    if(dt<350 && Math.hypot(dx,dy)<15){
+      walkTo(e.clientX,e.clientY)
+    }
+  })
+}
+function walkTo(cx,cy){
+  if(!panoView) return
+  const r=document.getElementById('pano').getBoundingClientRect()
+  const nx=(cx-r.left)/r.width*2-1   /* -1 ~ 1 */
+  const ny=(cy-r.top)/r.height*2-1
+  /* 点击位置决定转向：左右控制 yaw，上下控制 pitch */
+  const targetYaw=panoView.yaw() + nx*0.8
+  const targetPitch=Math.max(-1.2, Math.min(1.2, panoView.pitch() + ny*0.5))
+  /* 平滑转向 */
+  panoView.setYaw(targetYaw)
+  panoView.setPitch(targetPitch)
+  /* 轻微前进感：FOV 先缩后放 */
+  const f0=panoView.fov()
+  panoView.setFov(f0*0.92)
+  setTimeout(()=>panoView.setFov(f0),180)
+}
 
 /* 初始化 */
 {
