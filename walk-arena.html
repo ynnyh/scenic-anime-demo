@@ -33,7 +33,8 @@
     background:rgba(246,236,212,.5);transform:translate(-50%,-50%);transition:transform .1s}
   /* 开始覆盖层 */
   #overlay{position:fixed;inset:0;z-index:100;background:rgba(10,8,4,.88);display:flex;
-    flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#f6ecd4}
+    flex-direction:column;align-items:center;justify-content:center;gap:20px;color:#f6ecd4;
+    pointer-events:auto}
   #overlay h2{font-size:22px;letter-spacing:4px;font-weight:700}
   #overlay p{font-size:13px;opacity:.75;line-height:1.8;text-align:center;max-width:280px}
   #overlay .start{background:#b23a2a;color:#fdf3d8;border:none;padding:13px 36px;font-size:15px;
@@ -429,9 +430,12 @@ renderer.domElement.addEventListener('mouseleave',()=>{mouseDown=false})
 
 /* 开始 */
 const overlay=document.getElementById('overlay')
-document.getElementById('btnStart').addEventListener('click',()=>{
+function startGame(){
   overlay.style.display='none'
-})
+}
+const btnStart=document.getElementById('btnStart')
+btnStart.addEventListener('click',startGame)
+btnStart.addEventListener('touchstart',(e)=>{e.preventDefault();startGame()},{passive:false})
 
 /* 退出 */
 function goBack(){location.href='index.html'}
