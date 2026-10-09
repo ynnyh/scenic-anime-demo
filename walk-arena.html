@@ -396,7 +396,7 @@ joy.addEventListener('pointermove',e=>{
   const dist=Math.hypot(dx,dy),max=joyRect.width/2-22
   const cl=Math.min(dist,max)
   const ang=Math.atan2(dy,dx)
-  joyX=Math.cos(ang)*cl/max
+  joyX=-Math.cos(ang)*cl/max
   joyY=-Math.sin(ang)*cl/max
   stick.style.transform=`translate(${-50+Math.cos(ang)*cl}%,${-50+Math.sin(ang)*cl}%)`
 })
