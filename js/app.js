@@ -161,11 +161,18 @@ function showPano(p){
   sceneView.style.transition='none'
   sceneView.style.visibility='visible'
   sceneView.setAttribute('aria-hidden','false')
-  sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
+  /* 先不设裁剪：让 Marzipano 在全尺寸下初始化，避免 WebGL 在 0 尺寸下建上下文导致黑屏 */
+  sceneView.style.clipPath='none'
   initPano(p.scene.pano)
+  /* 双 RAF 后 Marzipano 已初始化完成 → 瞬间裁为 0px（pano opacity:0 用户看不到）→ 展开动画 */
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    sceneView.style.transition='clip-path .8s cubic-bezier(.5,.06,.2,1)'
-    sceneView.style.clipPath=`circle(150% at ${sx}px ${sy}px)`
+    sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
+    requestAnimationFrame(()=>{
+      sceneView.style.transition='clip-path .8s cubic-bezier(.5,.06,.2,1)'
+      sceneView.style.clipPath=`circle(150% at ${sx}px ${sy}px)`
+      const pano=document.getElementById('pano')
+      if(pano) pano.style.opacity='1'
+    })
   }))
   document.getElementById('svBack').onclick=exitScene
   document.getElementById('svX').onclick=exitScene
@@ -186,6 +193,9 @@ function exitScene(){
   const p=curPoi
   const r=svg.getBoundingClientRect()
   const sx=r.left+p.x*st.k+st.x, sy=r.top+p.y*st.k+st.y
+  /* pano 渐隐 + 涟漪收缩同时进行 */
+  const pano=document.getElementById('pano')
+  if(pano) pano.style.opacity='0'
   sceneView.style.transition='clip-path .6s cubic-bezier(.55,.06,.6,1)'
   sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
   let done=false
