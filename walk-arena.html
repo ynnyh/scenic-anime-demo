@@ -107,16 +107,26 @@ const fill = new THREE.DirectionalLight(0x87CEEB, 0.3)
 fill.position.set(-30, 40, -30)
 scene.add(fill)
 
-/* ==================== 材质 ==================== */
+/* ==================== 纹理加载器 ==================== */
+const texLoader = new THREE.TextureLoader()
+function loadTex(url, repeat=1){
+  const t = texLoader.load(url)
+  t.wrapS = t.wrapT = THREE.RepeatWrapping
+  t.repeat.set(repeat, repeat)
+  t.colorSpace = THREE.SRGBColorSpace
+  return t
+}
+
+/* ==================== 材质（真实纹理） ==================== */
 const M = {
-  ground: new THREE.MeshStandardMaterial({ color:0x8a9a6a, roughness:0.95 }),
-  path: new THREE.MeshStandardMaterial({ color:0xb8a888, roughness:0.9 }),
+  ground: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/ground-dirt.jpg', 20), roughness:0.95 }),
+  path: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/stone-path.jpg', 15), roughness:0.9 }),
   sand: new THREE.MeshStandardMaterial({ color:0xc2a878, roughness:0.92 }),
-  wood: new THREE.MeshStandardMaterial({ color:0x8a6a48, roughness:0.85 }),
-  woodDark: new THREE.MeshStandardMaterial({ color:0x5a4a32, roughness:0.9 }),
-  roof: new THREE.MeshStandardMaterial({ color:0x4a5a6a, roughness:0.85 }),
-  roofRed: new THREE.MeshStandardMaterial({ color:0xb23a2a, roughness:0.85 }),
-  stone: new THREE.MeshStandardMaterial({ color:0x9a9a8a, roughness:0.95 }),
+  wood: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/wood-plank.jpg', 2), roughness:0.85 }),
+  woodDark: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/wood-plank.jpg', 1), roughness:0.9, color:0x8a7a6a }),
+  roof: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/roof-tile.jpg', 4), roughness:0.85 }),
+  roofRed: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/roof-tile.jpg', 4), roughness:0.85, color:0xcc5544 }),
+  stone: new THREE.MeshStandardMaterial({ map:loadTex('assets/textures/wall-brick.jpg', 8), roughness:0.95 }),
   water: new THREE.MeshStandardMaterial({ color:0x3a8ab8, roughness:0.1, metalness:0.3, transparent:true, opacity:0.85 }),
   leaf: new THREE.MeshStandardMaterial({ color:0x5a8a4a, roughness:0.9 }),
   trunk: new THREE.MeshStandardMaterial({ color:0x6a5a42, roughness:0.95 }),
