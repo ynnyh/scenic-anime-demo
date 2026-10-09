@@ -86,7 +86,7 @@ function fit(){
     k0k: k0,
   }
 }
-function apply(){ world.setAttribute('transform',`translate(${st.x},${st.y}) scale(${st.k})`) }
+function apply(){ world.setAttribute('transform',`translate(${st.x},${st.y}) scale(${st.k})`); updateSceneBubble() }
 function clampPan(){
   const W = stage.clientWidth, H = stage.clientHeight
   const w = WORLD_W*st.k, h = WORLD_H*st.k
@@ -119,6 +119,103 @@ function centerOn(wx,wy){
   const fx = W<720 ? W/2 : W*0.4
   tweenTo(fx-wx*tk, H*(W<720?.33:.5)-wy*tk, tk)
 }
+/* ---------- 实景场景：缩放浮条入口 + 涟漪转场 + 全屏视图 ---------- */
+const sceneView=document.getElementById('sceneView')
+const bubble=document.getElementById('sceneBubble')
+const scenePOIS=POIS.filter(p=>p.scene)
+let sceneOpen=false, sceneMeta=null, sceneIdx=0
+
+function updateSceneBubble(){
+  if(sceneOpen) return
+  const W=stage.clientWidth, H=stage.clientHeight
+  const cx=(W/2-st.x)/st.k, cy=(H/2-st.y)/st.k
+  let best=null, bd=1e9
+  for(const p of scenePOIS){ const d=Math.hypot(p.x-cx,p.y-cy); if(d<bd){bd=d;best=p} }
+  const ok=st.k>=k0*2.5 && best && bd<=160
+  if(ok && bubble.dataset.id!==best.id){
+    bubble.dataset.id=best.id
+    bubble.innerHTML=`进入实景 · ${best.name} <b>›</b>`
+    bubble.hidden=false
+    requestAnimationFrame(()=>bubble.classList.add('show'))
+  }else if(!ok && bubble.dataset.id){
+    bubble.dataset.id=''; bubble.classList.remove('show'); bubble.hidden=true
+  }
+}
+bubble.onclick=()=>{ const p=POIS.find(x=>x.id===bubble.dataset.id); if(p) enterScene(p) }
+
+function enterScene(p){
+  if(!p.scene||sceneOpen) return
+  sceneOpen=true; sceneMeta=p.scene; sceneIdx=0
+  closePanel()
+  bubble.dataset.id=''; bubble.classList.remove('show'); bubble.hidden=true
+  const r=svg.getBoundingClientRect()
+  const sx=r.left+p.x*st.k+st.x, sy=r.top+p.y*st.k+st.y
+  renderScene()
+  sceneView.style.transition='none'
+  sceneView.style.visibility='visible'
+  sceneView.setAttribute('aria-hidden','false')
+  sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    sceneView.style.transition='clip-path .85s cubic-bezier(.5,.06,.2,1)'
+    sceneView.style.clipPath=`circle(150% at ${sx}px ${sy}px)`
+  }))
+}
+function exitScene(){
+  if(!sceneOpen) return
+  const sx=innerWidth/2, sy=innerHeight*.42
+  sceneView.style.transition='clip-path .6s cubic-bezier(.55,.06,.6,1)'
+  sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
+  let done=false
+  const finish=()=>{ if(done) return; done=true
+    if(document.activeElement && sceneView.contains(document.activeElement)) document.activeElement.blur()
+    sceneView.style.visibility='hidden'; sceneView.style.transition='none'
+    sceneView.setAttribute('aria-hidden','true'); sceneOpen=false }
+  sceneView.addEventListener('transitionend',finish,{once:true})
+  setTimeout(finish,700)
+}
+addEventListener('keydown',e=>{ if(e.key==='Escape') exitScene() })
+
+function renderScene(){
+  const s=sceneMeta
+  sceneView.innerHTML=`
+    <div class="sv-stage">
+      <div class="sv-track" id="svTrack">${s.shots.map(sh=>`
+        <figure class="sv-shot">
+          <img src="${sh.src}" alt="${sh.cap}" draggable="false">
+          <figcaption>${sh.cap}<span>动漫风格示意绘制</span></figcaption>
+        </figure>`).join('')}
+      </div>
+      ${s.shots.length>1?`
+      <button class="sv-nav prev" aria-label="上一张">‹</button>
+      <button class="sv-nav next" aria-label="下一张">›</button>`:''}
+    </div>
+    <div class="sv-top">
+      <button class="sv-back" id="svBack">‹ 回到地图</button>
+      <div class="sv-title"><span>实景</span><b>${s.name}</b></div>
+      <button class="sv-x" id="svX" aria-label="关闭">✕</button>
+    </div>
+    <div class="sv-dots">${s.shots.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('')}</div>`
+  const track=document.getElementById('svTrack')
+  const dots=[...sceneView.querySelectorAll('.sv-dots i')]
+  const go=i=>{
+    sceneIdx=(i+s.shots.length)%s.shots.length
+    track.style.transform=`translateX(-${sceneIdx*100}%)`
+    dots.forEach((d,j)=>d.classList.toggle('on',j===sceneIdx))
+  }
+  sceneView.querySelectorAll('.sv-nav').forEach(b=>{
+    b.onclick=()=>go(sceneIdx+(b.classList.contains('next')?1:-1))
+  })
+  document.getElementById('svBack').onclick=exitScene
+  document.getElementById('svX').onclick=exitScene
+  let px=null
+  track.addEventListener('pointerdown',e=>{ px=e.clientX })
+  track.addEventListener('pointerup',e=>{
+    if(px===null) return
+    const dx=e.clientX-px; px=null
+    if(Math.abs(dx)>48) go(sceneIdx+(dx<0?1:-1))
+  })
+}
+
 /* 初始化 */
 {
   const f=fit(); st.k=f.k; st.x=f.x; st.y=f.y; apply()
@@ -221,6 +318,7 @@ function fmtRoute(id){
 }
 function openPanel(p){
   selected=p; routeOn=false; routeLayer.innerHTML=''
+  bubble.dataset.id=''; bubble.classList.remove('show'); bubble.hidden=true
   pinLayer.querySelectorAll('.pin').forEach(el=>el.classList.toggle('selected',el.dataset.id===p.id))
   const cat=CATS[p.cat], r=fmtRoute(p.node)
   panel.innerHTML=`
@@ -236,6 +334,7 @@ function openPanel(p){
       <div class="p-sh-title">今日场次 <span>（示意，以官方小程序为准）</span></div>
       <div class="p-shows">${p.schedule.map(s=>
         `<div class="p-show"><span class="p-time">${s.t}</span><span>${s.n}</span>${s.hot?'<em>需预约</em>':''}</div>`).join('')}</div>`:''}
+      ${p.scene?`<button class="btn scene-btn" id="pScene">进入实景 · ${p.scene.name}</button>`:''}
       <div class="p-actions">
         <button class="btn pri" id="pRoute">步行怎么去</button>
         <button class="btn sec" id="pKeep">继续看图</button>
@@ -246,11 +345,13 @@ function openPanel(p){
   document.getElementById('pClose').onclick=closePanel
   document.getElementById('pKeep').onclick=closePanel
   document.getElementById('pRoute').onclick=toggleRoute
+  const sb=document.getElementById('pScene'); if(sb) sb.onclick=()=>enterScene(p)
   centerOn(p.x,p.y)
 }
 function closePanel(){
   panel.classList.remove('show'); selected=null; routeOn=false; routeLayer.innerHTML=''
   pinLayer.querySelectorAll('.selected').forEach(el=>el.classList.remove('selected'))
+  updateSceneBubble()
 }
 function toggleRoute(){
   if(!selected) return

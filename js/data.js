@@ -36,7 +36,11 @@ export const POIS = [
       { t:'10:30', n:'三打祝家庄 · 马战实景' },
       { t:'15:00', n:'三打祝家庄 · 马战实景' },
       { t:'19:30', n:'打铁花（夜场）', hot:true },
-    ] },
+    ],
+    scene:{ name:'城寨沙场', shots:[
+      { src:'assets/scenes/arena-day.jpg',   cap:'《三打祝家庄》马战 · 城楼看台视角' },
+      { src:'assets/scenes/arena-night.jpg', cap:'非遗打铁花 · 1600℃ 铁水绽作星雨' },
+    ] } },
   { id:'yuanxing', node:'yuanxing', cat:'show', x:300, y:356, char:'艺', name:'圆形沙场',
     desc:'露天圆形小剧场，轮番上演民间杂耍与民俗绝活，行经主环路即可围观。',
     schedule:[
@@ -57,13 +61,19 @@ export const POIS = [
   { id:'temple', node:'temple', cat:'spot', x:438, y:150, char:'寺', name:'万岁寺',
     desc:'仿古寺院，五层宝塔是全园制高点之一，寺前广场适合拍全园取景。' },
   { id:'lake', node:'lake', cat:'spot', x:794, y:172, char:'湖', name:'仙侠湖',
-    desc:'湖光水景区：湖心亭、月桥与环湖步道相连，春有樱花秋有灯，拍照歇脚两相宜。' },
+    desc:'湖光水景区：湖心亭、月桥与环湖步道相连，春有樱花秋有灯，拍照歇脚两相宜。',
+    scene:{ name:'仙侠湖', shots:[
+      { src:'assets/scenes/lake.jpg', cap:'湖心亭与月桥 · 春樱环湖' },
+    ] } },
   { id:'pool', node:'jiulong', cat:'spot', x:292, y:206, char:'潭', name:'九龙潭',
     desc:'西北角水潭，九曲小桥连临水小榭，人少清静。' },
   { id:'wuguan', node:'wuguan', cat:'spot', x:226, y:452, char:'武', name:'大宋武馆',
     desc:'仿宋代武馆院落，白天有武术教习与体验场次，可入内参观。' },
   { id:'shuijie', node:'shuijie', cat:'spot', x:312, y:498, char:'街', name:'水浒街',
-    desc:'宋代风情商业街：木楼黛瓦、幌子灯笼，开封小吃与武侠文创都在这条街。' },
+    desc:'宋代风情商业街：木楼黛瓦、幌子灯笼，开封小吃与武侠文创都在这条街。',
+    scene:{ name:'水浒街', shots:[
+      { src:'assets/scenes/shuijie.jpg', cap:'华灯初上 · 宋市烟火' },
+    ] } },
 
   // —— 卫生间（沿路 4 处） ——
   { id:'wc1', node:'W2', cat:'wc', x:372, y:300, char:'WC', name:'卫生间', small:true },
