@@ -3,6 +3,7 @@
  * 点位名称/相对布局按万岁山武侠城真实结构标定，
  * 正式版可替换为勘测坐标与官方节目单接口。
  * ========================================================= */
+import { ARENA_PANO_B64 } from '../assets/scenes/arena-pano-b64.js'
 
 export const CATS = {
   gate:    { label:'出入口', color:'#b23a2a', soft:'#f3dcd6' },
@@ -37,7 +38,7 @@ export const POIS = [
       { t:'15:00', n:'三打祝家庄 · 马战实景' },
       { t:'19:30', n:'打铁花（夜场）', hot:true },
     ],
-    scene:{ name:'城寨沙场', pano:'assets/scenes/arena-pano.jpg' } },
+    scene:{ name:'城寨沙场', pano:ARENA_PANO_B64 } },
   { id:'yuanxing', node:'yuanxing', cat:'show', x:300, y:356, char:'艺', name:'圆形沙场',
     desc:'露天圆形小剧场，轮番上演民间杂耍与民俗绝活，行经主环路即可围观。',
     schedule:[
