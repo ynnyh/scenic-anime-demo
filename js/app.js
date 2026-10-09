@@ -86,7 +86,7 @@ function fit(){
     k0k: k0,
   }
 }
-function apply(){ world.setAttribute('transform',`translate(${st.x},${st.y}) scale(${st.k})`); updateSceneBubble() }
+function apply(){ world.setAttribute('transform',`translate(${st.x},${st.y}) scale(${st.k})`); scheduleAutoEnter() }
 function clampPan(){
   const W = stage.clientWidth, H = stage.clientHeight
   const w = WORLD_W*st.k, h = WORLD_H*st.k
@@ -119,102 +119,90 @@ function centerOn(wx,wy){
   const fx = W<720 ? W/2 : W*0.4
   tweenTo(fx-wx*tk, H*(W<720?.33:.5)-wy*tk, tk)
 }
-/* ---------- 实景场景：缩放浮条入口 + 涟漪转场 + 全屏视图 ---------- */
+/* ---------- 实景场景：放大自动落进 720° 全景（Marzipano） ---------- */
 const sceneView=document.getElementById('sceneView')
-const bubble=document.getElementById('sceneBubble')
-const scenePOIS=POIS.filter(p=>p.scene)
-let sceneOpen=false, sceneMeta=null, sceneIdx=0
+let sceneOpen=false, panoViewer=null, panoView=null
+let lastExit=0, curPoi=null, settleTimer=null
 
-function updateSceneBubble(){
-  if(sceneOpen) return
+/* 自动进入：缩放足够深 + 全景点位在视野中心附近，且不在退出冷却期 */
+function scheduleAutoEnter(){
+  clearTimeout(settleTimer)
+  settleTimer=setTimeout(checkAutoEnter,260)
+}
+function checkAutoEnter(){
+  if(sceneOpen || Date.now()-lastExit<2500) return
+  if(st.k < k0*2.8) return
   const W=stage.clientWidth, H=stage.clientHeight
   const cx=(W/2-st.x)/st.k, cy=(H/2-st.y)/st.k
-  let best=null, bd=1e9
-  for(const p of scenePOIS){ const d=Math.hypot(p.x-cx,p.y-cy); if(d<bd){bd=d;best=p} }
-  const ok=st.k>=k0*2.5 && best && bd<=160
-  if(ok && bubble.dataset.id!==best.id){
-    bubble.dataset.id=best.id
-    bubble.innerHTML=`进入实景 · ${best.name} <b>›</b>`
-    bubble.hidden=false
-    requestAnimationFrame(()=>bubble.classList.add('show'))
-  }else if(!ok && bubble.dataset.id){
-    bubble.dataset.id=''; bubble.classList.remove('show'); bubble.hidden=true
-  }
+  const p=POIS.find(p=>p.scene && Math.hypot(p.x-cx,p.y-cy)<=110)
+  if(p) enterScene(p)
 }
-bubble.onclick=()=>{ const p=POIS.find(x=>x.id===bubble.dataset.id); if(p) enterScene(p) }
 
 function enterScene(p){
   if(!p.scene||sceneOpen) return
-  sceneOpen=true; sceneMeta=p.scene; sceneIdx=0
-  closePanel()
-  bubble.dataset.id=''; bubble.classList.remove('show'); bubble.hidden=true
+  sceneOpen=true; curPoi=p; closePanel()
+  /* 推镜：先把点位继续放大推向满屏，再展开全景 */
+  const W=stage.clientWidth, H=stage.clientHeight
+  const tk=Math.max(st.k, k0*3.6)
+  tweenTo(W/2-p.x*tk, H/2-p.y*tk, tk, 700)
+  setTimeout(()=>showPano(p), 620)
+}
+function showPano(p){
   const r=svg.getBoundingClientRect()
   const sx=r.left+p.x*st.k+st.x, sy=r.top+p.y*st.k+st.y
-  renderScene()
+  sceneView.innerHTML=`
+    <div id="pano"></div>
+    <div class="sv-top">
+      <button class="sv-back" id="svBack">‹ 回到地图</button>
+      <div class="sv-title"><span>实景</span><b>${p.scene.name}</b></div>
+      <button class="sv-x" id="svX" aria-label="关闭">✕</button>
+    </div>
+    <div class="pano-hint">拖动环顾四周 · 双指张开退回地图</div>`
   sceneView.style.transition='none'
   sceneView.style.visibility='visible'
   sceneView.setAttribute('aria-hidden','false')
   sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
+  initPano(p.scene.pano)
   requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    sceneView.style.transition='clip-path .85s cubic-bezier(.5,.06,.2,1)'
+    sceneView.style.transition='clip-path .8s cubic-bezier(.5,.06,.2,1)'
     sceneView.style.clipPath=`circle(150% at ${sx}px ${sy}px)`
   }))
+  document.getElementById('svBack').onclick=exitScene
+  document.getElementById('svX').onclick=exitScene
+}
+function initPano(src){
+  panoViewer=new Marzipano.Viewer(document.getElementById('pano'),{controls:{mouseViewMode:'drag'}})
+  const source=Marzipano.ImageUrlSource.fromString(src)
+  const geometry=new Marzipano.EquirectGeometry([{width:4096}])
+  const limiter=Marzipano.RectilinearView.limit.traditional(4096, 120*Math.PI/180, 176*Math.PI/180)
+  panoView=new Marzipano.RectilinearView({yaw:0,pitch:0,fov:1.3}, limiter)
+  const scene=panoViewer.createScene({source,geometry,view:panoView})
+  scene.switchTo({transitionDuration:0})
+  /* 双指张开把视野拉到最广 → 退回地图 */
+  panoView.addEventListener('change',()=>{ if(sceneOpen && panoView.fov()>1.7) exitScene() })
 }
 function exitScene(){
   if(!sceneOpen) return
-  const sx=innerWidth/2, sy=innerHeight*.42
+  const p=curPoi
+  const r=svg.getBoundingClientRect()
+  const sx=r.left+p.x*st.k+st.x, sy=r.top+p.y*st.k+st.y
   sceneView.style.transition='clip-path .6s cubic-bezier(.55,.06,.6,1)'
   sceneView.style.clipPath=`circle(0px at ${sx}px ${sy}px)`
   let done=false
   const finish=()=>{ if(done) return; done=true
     if(document.activeElement && sceneView.contains(document.activeElement)) document.activeElement.blur()
     sceneView.style.visibility='hidden'; sceneView.style.transition='none'
-    sceneView.setAttribute('aria-hidden','true'); sceneOpen=false }
+    sceneView.setAttribute('aria-hidden','true')
+    if(panoViewer){ panoViewer.destroy(); panoViewer=null; panoView=null }
+    sceneOpen=false; lastExit=Date.now() }
   sceneView.addEventListener('transitionend',finish,{once:true})
   setTimeout(finish,700)
+  /* 地图缩回到舒适视野，避免一退出又触发进入 */
+  const W=stage.clientWidth, H=stage.clientHeight
+  const tk=k0*1.6
+  tweenTo(W/2-p.x*tk, H*(W<720?.38:.5)-p.y*tk, tk, 650)
 }
 addEventListener('keydown',e=>{ if(e.key==='Escape') exitScene() })
-
-function renderScene(){
-  const s=sceneMeta
-  sceneView.innerHTML=`
-    <div class="sv-stage">
-      <div class="sv-track" id="svTrack">${s.shots.map(sh=>`
-        <figure class="sv-shot">
-          <img src="${sh.src}" alt="${sh.cap}" draggable="false">
-          <figcaption>${sh.cap}<span>动漫风格示意绘制</span></figcaption>
-        </figure>`).join('')}
-      </div>
-      ${s.shots.length>1?`
-      <button class="sv-nav prev" aria-label="上一张">‹</button>
-      <button class="sv-nav next" aria-label="下一张">›</button>`:''}
-    </div>
-    <div class="sv-top">
-      <button class="sv-back" id="svBack">‹ 回到地图</button>
-      <div class="sv-title"><span>实景</span><b>${s.name}</b></div>
-      <button class="sv-x" id="svX" aria-label="关闭">✕</button>
-    </div>
-    <div class="sv-dots">${s.shots.map((_,i)=>`<i class="${i===0?'on':''}"></i>`).join('')}</div>`
-  const track=document.getElementById('svTrack')
-  const dots=[...sceneView.querySelectorAll('.sv-dots i')]
-  const go=i=>{
-    sceneIdx=(i+s.shots.length)%s.shots.length
-    track.style.transform=`translateX(-${sceneIdx*100}%)`
-    dots.forEach((d,j)=>d.classList.toggle('on',j===sceneIdx))
-  }
-  sceneView.querySelectorAll('.sv-nav').forEach(b=>{
-    b.onclick=()=>go(sceneIdx+(b.classList.contains('next')?1:-1))
-  })
-  document.getElementById('svBack').onclick=exitScene
-  document.getElementById('svX').onclick=exitScene
-  let px=null
-  track.addEventListener('pointerdown',e=>{ px=e.clientX })
-  track.addEventListener('pointerup',e=>{
-    if(px===null) return
-    const dx=e.clientX-px; px=null
-    if(Math.abs(dx)>48) go(sceneIdx+(dx<0?1:-1))
-  })
-}
 
 /* 初始化 */
 {
@@ -318,7 +306,6 @@ function fmtRoute(id){
 }
 function openPanel(p){
   selected=p; routeOn=false; routeLayer.innerHTML=''
-  bubble.dataset.id=''; bubble.classList.remove('show'); bubble.hidden=true
   pinLayer.querySelectorAll('.pin').forEach(el=>el.classList.toggle('selected',el.dataset.id===p.id))
   const cat=CATS[p.cat], r=fmtRoute(p.node)
   panel.innerHTML=`
@@ -351,7 +338,6 @@ function openPanel(p){
 function closePanel(){
   panel.classList.remove('show'); selected=null; routeOn=false; routeLayer.innerHTML=''
   pinLayer.querySelectorAll('.selected').forEach(el=>el.classList.remove('selected'))
-  updateSceneBubble()
 }
 function toggleRoute(){
   if(!selected) return
